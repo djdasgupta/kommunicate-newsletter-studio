@@ -1,0 +1,12 @@
+{
+  "name": "kommunicate-newsletter-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitHub-maintainable Lexplosion regulatory newsletter generator",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "latest"
+  }
+}
