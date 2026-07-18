@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
 <script src="config.js"></script>
 <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -19,7 +20,33 @@
     <div class="lexplosion-logo"><span class="lx-symbol"><i></i><i></i><i></i></span></div>
     <div class="brand-copy"><h1>Kommunicate Studio</h1><p>Lexplosion Solutions · Innovating Legally</p></div>
   </div>
-  <div class="step"><h3>1. Upload source file</h3><div class="drop" id="dropZone"><strong>Drop Excel or Word file</strong><small>.xlsx or .docx · processed in your browser</small><input id="fileInput" class="hidden" type="file" accept=".xlsx,.docx" /></div><div id="fileName" class="hint" style="margin-top:8px"></div></div>
+  <div class="step"><h3>1. Add source content</h3>
+    <div class="source-tabs" role="tablist" aria-label="Source input mode">
+      <button class="source-tab active" type="button" data-source-mode="structured">Structured file</button>
+      <button class="source-tab" type="button" data-source-mode="documents">Documents</button>
+      <button class="source-tab" type="button" data-source-mode="paste">Paste text</button>
+    </div>
+    <div class="source-pane" data-source-pane="structured">
+      <div class="drop" id="dropZone" role="button" tabindex="0" aria-controls="fileInput">
+        <strong>Drop a structured Excel or Word file</strong>
+        <small>.xlsx or a Word file using the prescribed field format</small>
+        <button class="btn secondary source-picker" id="chooseStructuredFileBtn" type="button">Choose structured file</button>
+        <input id="fileInput" class="visually-hidden-file" type="file" accept=".xlsx,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+      </div>
+      <div id="fileName" class="hint" style="margin-top:8px"></div>
+      <div id="structuredFileStatus" class="source-upload-status" aria-live="polite"></div>
+      <div class="source-mode-help"><b>Use this tab only for structured inputs.</b> For a normal PDF, ordinary Word document or text file, select <b>Documents</b> instead.</div>
+    </div>
+    <div class="source-pane hidden" data-source-pane="documents">
+      <div class="drop" id="documentDropZone"><strong>Drop one or more source documents</strong><small>.pdf, .docx or .txt · text is extracted locally for review</small><input id="documentFileInput" class="hidden" type="file" accept=".pdf,.docx,.txt,text/plain,application/pdf" multiple /></div>
+      <div class="source-actions"><button class="btn secondary" type="button" id="combineSourcesBtn" disabled>Combine sources</button><button class="btn ghost" type="button" id="clearSourcesBtn" disabled>Clear all</button></div>
+    </div>
+    <div class="source-pane hidden" data-source-pane="paste">
+      <div class="field"><label>Paste unstructured source text</label><textarea id="pastedSourceText" placeholder="Paste a notification, amendment, legal update, article or other source content here."></textarea></div>
+      <div class="source-actions"><button class="btn secondary" type="button" id="addPastedSourceBtn">Add pasted text</button><button class="btn ghost" type="button" id="clearPastedSourceBtn">Clear</button></div>
+    </div>
+    <div class="email-note"><b>Current phase:</b> document text is extracted and prepared for review. AI instructions and automated newsletter population will be added in the next build.</div>
+  </div>
   <div class="step"><h3>2. Newsletter settings</h3>
     <div class="email-note"><b>Sharing and review:</b> generate the newsletter first, then use <b>Create review link</b> or <b>Email for review</b>. Recipient addresses are entered when you click the email button.</div>
     <div class="field"><label>Issue title</label><input id="issueTitle" value="Compliance Newsletter"></div>
@@ -56,7 +83,9 @@
 <main class="main">
   <div class="topbar"><h2>Newsletter preview</h2><span class="status" id="status">Waiting for source data</span></div>
   <div class="workspace"><div class="preview-shell"><div class="preview" id="preview"></div></div>
-  <aside class="panel"><h3>Validation and activity</h3><div id="summary" class="hint">Upload a structured workbook or Word document to begin.</div><div class="log" id="log" style="margin-top:12px">No activity yet.</div><p><span class="pill ok">Static HTML</span> Parsing and generation run locally. A share link becomes externally usable after this file is hosted on GitHub Pages, Netlify, Azure Static Web Apps or a similar static host.</p></aside></div>
+  <aside class="panel"><h3>Validation and activity</h3><div id="summary" class="hint">Upload a structured workbook, add source documents or paste text to begin.</div><div class="log" id="log" style="margin-top:12px">No activity yet.</div>
+  <div class="source-review" id="sourceReview"><div class="source-review-head"><h3>Extracted sources</h3><span class="pill" id="sourceCount">0 sources</span></div><div id="sourceList" class="source-list"><div class="empty-source">No unstructured sources added.</div></div><button class="btn secondary full" id="previewCombinedBtn" type="button" disabled>Preview combined text</button></div>
+  <p><span class="pill ok">Browser processing</span> Excel, Word, PDF and text extraction run locally. Scanned-image PDFs may require OCR in a later build.</p></aside></div>
 </main></div>
 
 <dialog id="linkDialog" class="app-dialog">
@@ -81,6 +110,16 @@
     <textarea id="reviewMessage" class="dialog-textarea small" placeholder="Please review this edition and share your comments."></textarea>
     <div class="dialog-actions"><button type="button" class="btn orange" id="sendReviewBtn">Send newsletter</button><button class="btn plain" value="cancel">Cancel</button></div>
     <div id="emailDialogStatus" class="dialog-status"></div>
+  </form>
+</dialog>
+
+<dialog id="sourcePreviewDialog" class="app-dialog source-dialog">
+  <form method="dialog" class="dialog-card">
+    <div class="dialog-head"><div><h3 id="sourcePreviewTitle">Extracted source text</h3><p>Review and edit the extracted content before it is sent to the future AI processing step.</p></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div>
+    <textarea id="sourcePreviewText" class="dialog-textarea source-preview-text"></textarea>
+    <div class="dialog-help" id="sourcePreviewMeta"></div>
+    <div class="dialog-actions"><button type="button" class="btn secondary" id="saveSourceEditBtn">Save edits</button><button type="button" class="btn ghost light" id="downloadSourceTextBtn">Download text</button><button class="btn plain" value="cancel">Close</button></div>
+    <div id="sourcePreviewStatus" class="dialog-status"></div>
   </form>
 </dialog>
 

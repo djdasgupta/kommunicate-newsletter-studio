@@ -174,3 +174,57 @@ Click **Email for review** after generating a newsletter. A dialog asks for:
 - Review message.
 
 Multiple addresses can be separated by commas, semicolons or new lines. The app sends the rendered newsletter and interactive review link through the Netlify serverless function. `RESEND_API_KEY` and `NEWSLETTER_FROM` must be configured in Netlify environment variables.
+
+## Flexible design editor (Phase 1)
+
+This version adds a governed visual editor while retaining email-safe HTML output.
+
+Users can now:
+- change heading and body fonts;
+- change the lead-story headline colour and size;
+- change body text size and newsletter content width;
+- upload or replace the Lexplosion masthead logo;
+- upload replacement logos for Komrisk AI, Komtrakt, Komtrol and Komtrol Plus;
+- restore default logos;
+- save a preferred design in the current browser;
+- reset the design to the governed default;
+- carry the selected design into HTML, Word and review-link outputs.
+
+Logo files are stored in the browser as part of the active design state. Use PNG, JPG, WebP or SVG files under 2 MB. For a later multi-user production version, logos and templates should be stored in managed cloud storage rather than browser local storage.
+
+## Planned next phase
+
+The next increment will introduce unstructured ingestion for PDF, Word and pasted text, followed by a secure Netlify Function that sends extracted content and a user-written instruction to an LLM and returns schema-validated newsletter content.
+
+## Phase 2: multi-format source ingestion
+
+This version adds a new source-input layer before the future LLM workflow.
+
+### Input modes
+
+1. **Structured file**: existing `.xlsx` and structured `.docx` mapping.
+2. **Documents**: upload one or more `.pdf`, `.docx`, or `.txt` files.
+3. **Paste text**: paste unstructured source content directly.
+
+### What the document mode does
+
+- Extracts selectable text locally in the browser.
+- Lists each source with file type, size, page/section count, and word count.
+- Lets users review and edit extracted text.
+- Supports include/exclude, remove, and reorder controls.
+- Combines all included sources into a single reviewable text package.
+- Downloads the combined source package as a `.txt` file.
+
+### Current limitation
+
+This phase does not send source content to an LLM and does not automatically populate the newsletter. Scanned or image-only PDFs may produce no selectable text and will require OCR in a later phase.
+
+### Recommended test
+
+1. Open `index.html` from a hosted environment or local static server.
+2. Select **Documents**.
+3. Upload a normal text-based PDF, DOCX, and TXT file.
+4. Review each extracted source.
+5. Exclude and reorder sources.
+6. Select **Combine sources** and verify the combined text.
+7. Select **Paste text**, add sample content, and confirm it appears in the source list.

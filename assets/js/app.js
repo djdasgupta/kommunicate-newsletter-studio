@@ -57,8 +57,41 @@ function populateEditor(){if(!model)return;$('editorEmpty').classList.add('hidde
 function renderUpdatesEditor(){const wrap=$('updatesEditor');wrap.innerHTML='';(model.updates||[]).forEach((u,idx)=>{const card=document.createElement('div');card.className='editor-card';card.innerHTML=`<h4>Regulatory update ${idx+1}</h4><div class="field"><label>Headline</label><input data-field="short_headline" data-index="${idx}" value="${esc(u.short_headline||u.regulation_title||u.title||'')}"></div><div class="field"><label>Summary</label><textarea data-field="summary" data-index="${idx}">${esc(u.summary||'')}</textarea></div><div class="mini-grid"><div class="field"><label>Category</label><input data-field="category" data-index="${idx}" value="${esc(u.category||'')}"></div><div class="field"><label>Risk level</label><select data-field="risk_level" data-index="${idx}"><option ${u.risk_level==='Critical'?'selected':''}>Critical</option><option ${u.risk_level==='High'?'selected':''}>High</option><option ${u.risk_level==='Medium'?'selected':''}>Medium</option><option ${u.risk_level==='Low'?'selected':''}>Low</option></select></div></div><button class="remove-update" type="button" data-remove="${idx}">Remove update</button>`;wrap.appendChild(card)});wrap.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{model.updates.splice(+b.dataset.remove,1);renderUpdatesEditor()})}
 function applyEditorToModel(){if(!model)return;model.issue=model.issue||{};model.issue.headline=$('editHeadline').value.trim();model.issue.introduction=$('editIntroduction').value.trim();model.issue.executive_summary=$('editExecutiveSummary').value.trim();document.querySelectorAll('#updatesEditor [data-field]').forEach(el=>{const idx=+el.dataset.index,field=el.dataset.field;model.updates[idx]=model.updates[idx]||{};model.updates[idx][field]=el.value.trim()});log('Content edits applied','ok')}
 function show(){populateEditor();refreshPreview('Newsletter generated');const e=validate(model);$('summary').innerHTML=e.length?`<span class="pill error">${e.length} issue(s)</span><br>${e.join('<br>')}`:`<span class="pill ok">Ready</span><br>${model.updates.length} regulatory updates, ${model.insights?.length||0} insights and ${model.promotions?.length||0} products found.`;log('Newsletter generated',e.length?'warn':'ok')}
-async function handle(file){$('fileName').textContent=file.name;log('Reading '+file.name);try{model=file.name.toLowerCase().endsWith('.xlsx')?await parseExcel(file):await parseWord(file);show()}catch(err){log('Could not parse file: '+err.message,'error');$('summary').innerHTML='<span class="pill error">Parsing failed</span><br>'+esc(err.message)}}
-$('dropZone').onclick=()=>$('fileInput').click();$('fileInput').onchange=e=>e.target.files[0]&&handle(e.target.files[0]);['dragenter','dragover'].forEach(ev=>$('dropZone').addEventListener(ev,e=>{e.preventDefault();$('dropZone').classList.add('drag')}));['dragleave','drop'].forEach(ev=>$('dropZone').addEventListener(ev,e=>{e.preventDefault();$('dropZone').classList.remove('drag')}));$('dropZone').addEventListener('drop',e=>e.dataTransfer.files[0]&&handle(e.dataTransfer.files[0]));
+function setStructuredStatus(message,type=''){
+  const el=$('structuredFileStatus');if(!el)return;el.textContent=message||'';el.className='source-upload-status'+(type?' '+type:'');
+}
+function isStructuredExtension(file){return /\.(xlsx|docx)$/i.test(file?.name||'')}
+async function handle(file){
+  if(!file)return;
+  if(!isStructuredExtension(file)){
+    const message='This tab accepts only .xlsx or structured .docx files. Select Documents for PDF, ordinary Word or TXT sources.';
+    setStructuredStatus(message,'error');log(message,'error');return;
+  }
+  $('fileName').textContent=file.name;setStructuredStatus('Reading and validating the file…','processing');log('Reading '+file.name);
+  try{
+    const isExcel=/\.xlsx$/i.test(file.name);
+    model=isExcel?await parseExcel(file):await parseWord(file);
+    const hasIssue=model?.issue&&Object.keys(model.issue).length;
+    const hasUpdates=Array.isArray(model?.updates)&&model.updates.length;
+    if(!hasIssue&&!hasUpdates){
+      throw new Error(isExcel?'The workbook does not contain recognised Issue or Regulatory Updates data.':'This Word file does not use the structured field format. Select Documents to extract it as unstructured source material.');
+    }
+    setStructuredStatus('File loaded successfully. The newsletter content has been populated.','ok');show();
+  }catch(err){
+    model=null;setStructuredStatus(err.message,'error');log('Could not parse file: '+err.message,'error');$('summary').innerHTML='<span class="pill error">Parsing failed</span><br>'+esc(err.message);
+  }
+}
+(function bindStructuredUpload(){
+  const zone=$('dropZone'),input=$('fileInput'),button=$('chooseStructuredFileBtn');
+  const openPicker=e=>{if(e){e.preventDefault();e.stopPropagation()}input.value='';input.click()};
+  button.addEventListener('click',openPicker);
+  zone.addEventListener('click',e=>{if(e.target===button)return;openPicker(e)});
+  zone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){openPicker(e)}});
+  input.addEventListener('change',async e=>{const file=e.target.files&&e.target.files[0];if(file)await handle(file)});
+  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();zone.classList.add('drag')}));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();zone.classList.remove('drag')}));
+  zone.addEventListener('drop',async e=>{const file=e.dataTransfer?.files?.[0];if(file)await handle(file)});
+})();
 $('sampleBtn').onclick=()=>{model=JSON.parse(JSON.stringify(demo));show()};$('applyEditsBtn').onclick=()=>{applyEditorToModel();show()};$('addUpdateBtn').onclick=()=>{if(!model)return;model.updates=model.updates||[];model.updates.push({display_order:model.updates.length+1,category:'Regulatory update',short_headline:'New regulatory update',summary:'Add the regulatory summary here.',risk_level:'Medium'});renderUpdatesEditor()};$('generateBtn').onclick=()=>{if(!model)return log('Upload a file or load the demo first','warn');applyEditorToModel();show()};
 $('downloadBtn').onclick=()=>{const blob=new Blob([generatedHtml],{type:'text/html'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kommunicate-newsletter.html';a.click();URL.revokeObjectURL(a.href);log('HTML downloaded')};
 function shareLink(){const currentIsHosted=/^https?:$/.test(location.protocol);const configured=(APP_CONFIG.publicAppUrl||'').replace(/\/$/,'');const base=configured||(currentIsHosted?location.origin+location.pathname:'');if(!base)throw new Error('Deploy the app before creating a shareable review link.');const payload=LZString.compressToEncodedURIComponent(JSON.stringify({model,primary:$('primaryColor').value,accent:$('accentColor').value,title:$('issueTitle').value,design:designState}));return base+'#newsletter='+payload}
@@ -124,3 +157,109 @@ async function downloadDocx(){
 $('downloadDocxBtn').onclick=downloadDocx;
 (function initDesign(){try{const saved=localStorage.getItem('kommunicateDesign');if(saved)designState={...JSON.parse(JSON.stringify(defaultDesign)),...JSON.parse(saved)};}catch(e){}syncDesignControls();bindDesignControls();})();
 (function restore(){const m=location.hash.match(/newsletter=([^&]+)/);if(m)try{const x=JSON.parse(LZString.decompressFromEncodedURIComponent(m[1]));model=x.model;$('primaryColor').value=x.primary||'#173f42';$('primaryHex').value=$('primaryColor').value.toUpperCase();$('accentColor').value=x.accent||'#f58220';$('accentHex').value=$('accentColor').value.toUpperCase();$('issueTitle').value=x.title||'Compliance Newsletter';if(x.design){designState={...JSON.parse(JSON.stringify(defaultDesign)),...x.design,productLogos:x.design.productLogos||{}};syncDesignControls()}show();log('Shared newsletter loaded','ok')}catch(e){log('Shared link could not be read','error')}else{$('preview').innerHTML=`<div style="padding:70px 46px;text-align:center"><div style="display:inline-block;background:#173f42;color:white;border-radius:18px;padding:28px 34px"><div style="font-size:44px;font-weight:900;letter-spacing:-.05em">Kommunicate<span style="color:#f58220">.</span></div><div style="font-size:11px;letter-spacing:.13em;text-transform:uppercase;margin-top:8px;color:#cfe2df">Lexplosion's regulatory compliance newsletter</div></div><h2 style="font-size:26px;margin:24px 0 8px">Upload structured content to generate the next edition</h2><p style="color:#6b7280;line-height:1.6">Excel and Word files are parsed locally in the browser. No backend is required for the core workflow.</p></div>`}})();
+/* Phase 2: multi-format unstructured source ingestion */
+let extractedSources=[];
+let activeSourceId=null;
+let pdfModulePromise=null;
+function sourceUid(){return 'src_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
+function humanSize(bytes){if(!Number.isFinite(bytes))return'';if(bytes<1024)return bytes+' B';if(bytes<1048576)return(bytes/1024).toFixed(1)+' KB';return(bytes/1048576).toFixed(1)+' MB'}
+function sourceType(fileName){const ext=String(fileName||'').split('.').pop().toLowerCase();return ext||'text'}
+function cleanExtractedText(text){return String(text||'').replace(/\u0000/g,'').replace(/[ \t]+\n/g,'\n').replace(/\n{4,}/g,'\n\n\n').trim()}
+async function getPdfModule(){
+  if(!pdfModulePromise)pdfModulePromise=import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs').then(mod=>{mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';return mod});
+  return pdfModulePromise;
+}
+async function extractPdf(file){
+  const pdfjs=await getPdfModule();
+  const data=new Uint8Array(await file.arrayBuffer());
+  const pdf=await pdfjs.getDocument({data}).promise;
+  const pages=[];
+  for(let n=1;n<=pdf.numPages;n++){
+    const page=await pdf.getPage(n);const content=await page.getTextContent();
+    const line=content.items.map(item=>item.str).join(' ').replace(/\s+/g,' ').trim();
+    pages.push(`Page ${n}\n${line}`);
+  }
+  return{text:cleanExtractedText(pages.join('\n\n')),pages:pdf.numPages};
+}
+async function extractUnstructuredFile(file){
+  const ext=sourceType(file.name);
+  if(ext==='pdf')return extractPdf(file);
+  if(ext==='docx'){
+    const result=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
+    return{text:cleanExtractedText(result.value),sections:(result.value.match(/\n\s*\n/g)||[]).length+1};
+  }
+  if(ext==='txt')return{text:cleanExtractedText(await file.text())};
+  throw new Error('Unsupported file type. Use PDF, DOCX or TXT.');
+}
+async function addDocumentFiles(files){
+  const valid=[...files].filter(Boolean);
+  if(!valid.length)return;
+  log(`Extracting ${valid.length} source document${valid.length===1?'':'s'}…`);
+  for(const file of valid){
+    const placeholder={id:sourceUid(),name:file.name,type:sourceType(file.name).toUpperCase(),text:'',size:file.size,included:true,status:'processing'};
+    extractedSources.push(placeholder);renderSourceList();
+    try{
+      const result=await extractUnstructuredFile(file);
+      placeholder.text=result.text;placeholder.pages=result.pages||null;placeholder.sections=result.sections||null;placeholder.status=result.text?'ready':'empty';
+      if(!result.text)placeholder.error='No selectable text was found. The PDF may be scanned and require OCR.';
+      log(`${file.name}: text extracted`,result.text?'ok':'warn');
+    }catch(error){placeholder.status='error';placeholder.error=error.message;log(`${file.name}: ${error.message}`,'error')}
+    renderSourceList();
+  }
+}
+function sourceMeta(source){
+  const parts=[source.type,humanSize(source.size)];
+  if(source.pages)parts.push(`${source.pages} page${source.pages===1?'':'s'}`);
+  if(source.sections)parts.push(`${source.sections} section${source.sections===1?'':'s'}`);
+  if(source.text)parts.push(`${source.text.split(/\s+/).filter(Boolean).length.toLocaleString()} words`);
+  return parts.filter(Boolean).join(' · ');
+}
+function renderSourceList(){
+  const list=$('sourceList');if(!list)return;
+  $('sourceCount').textContent=`${extractedSources.length} source${extractedSources.length===1?'':'s'}`;
+  $('combineSourcesBtn').disabled=$('clearSourcesBtn').disabled=$('previewCombinedBtn').disabled=!extractedSources.some(x=>x.text&&x.included);
+  if(!extractedSources.length){list.innerHTML='<div class="empty-source">No unstructured sources added.</div>';return}
+  list.innerHTML='';
+  extractedSources.forEach((source,index)=>{
+    const card=document.createElement('div');card.className='source-item';
+    const status=source.status==='error'?'error':source.status==='processing'?'processing':'ready';
+    card.innerHTML=`<div class="source-item-top"><div><div class="source-name">${esc(source.name)}</div><div class="source-meta">${esc(sourceMeta(source))}</div></div><div class="source-item-actions"><button class="source-mini" data-action="up" ${index===0?'disabled':''}>↑</button><button class="source-mini" data-action="down" ${index===extractedSources.length-1?'disabled':''}>↓</button><button class="source-mini danger" data-action="remove">×</button></div></div><div class="source-status ${status==='error'?'error':''}">${status==='processing'?'Extracting':status==='error'?'Extraction failed':source.included?'Included':'Excluded'}</div>${source.error?`<div class="source-snippet" style="color:#b42318">${esc(source.error)}</div>`:`<div class="source-snippet">${esc(source.text||'No text extracted.')}</div>`}<div class="source-item-actions" style="margin-top:8px"><button class="source-mini" data-action="preview" ${!source.text?'disabled':''}>Review text</button><button class="source-mini" data-action="toggle" ${!source.text?'disabled':''}>${source.included?'Exclude':'Include'}</button></div>`;
+    card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=()=>handleSourceAction(source.id,btn.dataset.action));list.appendChild(card);
+  });
+}
+function handleSourceAction(id,action){
+  const index=extractedSources.findIndex(x=>x.id===id);if(index<0)return;
+  if(action==='remove')extractedSources.splice(index,1);
+  if(action==='up'&&index>0)[extractedSources[index-1],extractedSources[index]]=[extractedSources[index],extractedSources[index-1]];
+  if(action==='down'&&index<extractedSources.length-1)[extractedSources[index+1],extractedSources[index]]=[extractedSources[index],extractedSources[index+1]];
+  if(action==='toggle')extractedSources[index].included=!extractedSources[index].included;
+  if(action==='preview')openSourcePreview(id);
+  renderSourceList();
+}
+function combinedSourceText(){return extractedSources.filter(x=>x.included&&x.text).map((x,i)=>`SOURCE ${i+1}: ${x.name}\n${'-'.repeat(Math.min(70,x.name.length+10))}\n${x.text}`).join('\n\n\n')}
+function openSourcePreview(id='__combined'){
+  activeSourceId=id;const combined=id==='__combined';const source=combined?null:extractedSources.find(x=>x.id===id);if(!combined&&!source)return;
+  $('sourcePreviewTitle').textContent=combined?'Combined source text':source.name;
+  $('sourcePreviewText').value=combined?combinedSourceText():source.text;
+  $('sourcePreviewMeta').textContent=combined?`${extractedSources.filter(x=>x.included&&x.text).length} included sources · ${$('sourcePreviewText').value.split(/\s+/).filter(Boolean).length.toLocaleString()} words`:sourceMeta(source);
+  $('saveSourceEditBtn').style.display=combined?'none':'';$('sourcePreviewStatus').textContent='';$('sourcePreviewDialog').showModal();
+}
+function downloadTextFile(name,text){const blob=new Blob([text],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800)}
+function bindSourceIngestion(){
+  document.querySelectorAll('[data-source-mode]').forEach(tab=>tab.onclick=()=>{
+    document.querySelectorAll('[data-source-mode]').forEach(x=>x.classList.toggle('active',x===tab));
+    document.querySelectorAll('[data-source-pane]').forEach(p=>p.classList.toggle('hidden',p.dataset.sourcePane!==tab.dataset.sourceMode));
+  });
+  const zone=$('documentDropZone'),input=$('documentFileInput');zone.onclick=()=>input.click();input.onchange=e=>{addDocumentFiles(e.target.files);input.value=''};
+  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();zone.classList.add('drag')}));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();zone.classList.remove('drag')}));
+  zone.addEventListener('drop',e=>addDocumentFiles(e.dataTransfer.files));
+  $('addPastedSourceBtn').onclick=()=>{const text=cleanExtractedText($('pastedSourceText').value);if(!text)return log('Paste source text before adding it','warn');extractedSources.push({id:sourceUid(),name:`Pasted text ${extractedSources.filter(x=>x.type==='TEXT').length+1}`,type:'TEXT',text,size:new Blob([text]).size,included:true,status:'ready'});$('pastedSourceText').value='';renderSourceList();log('Pasted source text added','ok')};
+  $('clearPastedSourceBtn').onclick=()=>$('pastedSourceText').value='';
+  $('clearSourcesBtn').onclick=()=>{if(!confirm('Remove all extracted source documents?'))return;extractedSources=[];renderSourceList();log('All unstructured sources cleared')};
+  $('combineSourcesBtn').onclick=()=>openSourcePreview('__combined');$('previewCombinedBtn').onclick=()=>openSourcePreview('__combined');
+  $('saveSourceEditBtn').onclick=()=>{const source=extractedSources.find(x=>x.id===activeSourceId);if(!source)return;source.text=cleanExtractedText($('sourcePreviewText').value);source.size=new Blob([source.text]).size;renderSourceList();$('sourcePreviewStatus').textContent='Edits saved.';$('sourcePreviewStatus').className='dialog-status ok';log(`${source.name}: extracted text updated`,'ok')};
+  $('downloadSourceTextBtn').onclick=()=>downloadTextFile(activeSourceId==='__combined'?'kommunicate-combined-sources.txt':(extractedSources.find(x=>x.id===activeSourceId)?.name||'source')+'.txt',$('sourcePreviewText').value);
+  renderSourceList();
+}
+bindSourceIngestion();
