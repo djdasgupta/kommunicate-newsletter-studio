@@ -18,73 +18,129 @@
 <aside class="sidebar">
   <div class="brand">
     <div class="lexplosion-logo"><span class="lx-symbol"><i></i><i></i><i></i></span></div>
-    <div class="brand-copy"><h1>Kommunicate Studio</h1><p>Lexplosion Solutions · Innovating Legally</p></div>
+    <div class="brand-copy"><h1>Kommunicate Studio <span class="version-badge">Release Candidate 1</span></h1><p>Lexplosion Solutions · Innovating Legally</p></div>
   </div>
-  <div class="step"><h3>1. Add source content</h3>
-    <div class="source-tabs" role="tablist" aria-label="Source input mode">
-      <button class="source-tab active" type="button" data-source-mode="structured">Structured file</button>
-      <button class="source-tab" type="button" data-source-mode="documents">Documents</button>
-      <button class="source-tab" type="button" data-source-mode="paste">Paste text</button>
+
+  <section class="primary-workflow">
+    <div class="section-kicker">Primary workflow</div>
+    <h2>Generate newsletter</h2>
+    <p class="section-copy">Upload the standard Excel template. The newsletter will populate automatically.</p>
+    <div class="primary-upload" id="dropZone" role="button" tabindex="0" aria-controls="fileInput">
+      <div class="upload-icon">↑</div>
+      <strong>Upload standard Excel template</strong>
+      <small>.xlsx using the prescribed newsletter format</small>
+      <label class="btn orange source-picker" id="chooseStructuredFileBtn" for="fileInput">Choose Excel workbook</label>
+      <input id="fileInput" class="visually-hidden-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
     </div>
-    <div class="source-pane" data-source-pane="structured">
-      <div class="drop" id="dropZone" role="button" tabindex="0" aria-controls="fileInput">
-        <strong>Drop a structured Excel or Word file</strong>
-        <small>.xlsx or a Word file using the prescribed field format</small>
-        <button class="btn secondary source-picker" id="chooseStructuredFileBtn" type="button">Choose structured file</button>
-        <input id="fileInput" class="visually-hidden-file" type="file" accept=".xlsx,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+    <div id="fileName" class="hint" style="margin-top:8px"></div>
+    <div id="structuredFileStatus" class="source-upload-status" aria-live="polite"></div>
+    <button class="btn ghost full" id="sampleBtn" type="button">Load sample newsletter</button>
+  </section>
+
+  <details class="sidebar-accordion" id="supportingContentDetails">
+    <summary><span><b>Add supporting content</b><small>Supplement or override selected fields</small></span><span class="chevron">⌄</span></summary>
+    <div class="accordion-body">
+      <div class="support-choice" role="tablist" aria-label="Supporting content type">
+        <button class="support-tab active" id="supportUploadBtn" type="button" data-support-mode="upload">Upload document</button>
+        <button class="support-tab" id="supportPasteBtn" type="button" data-support-mode="paste">Paste text</button>
       </div>
-      <div id="fileName" class="hint" style="margin-top:8px"></div>
-      <div id="structuredFileStatus" class="source-upload-status" aria-live="polite"></div>
-      <div class="source-mode-help"><b>Use this tab only for structured inputs.</b> For a normal PDF, ordinary Word document or text file, select <b>Documents</b> instead.</div>
+      <div class="support-pane" data-support-pane="upload">
+        <div class="drop compact" id="documentDropZone"><strong>Upload supporting documents</strong><small>PDF, Word, Excel or text file</small><input id="documentFileInput" class="hidden" type="file" accept=".pdf,.docx,.txt,.xlsx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple /></div>
+      </div>
+      <div class="support-pane hidden" data-support-pane="paste">
+        <div class="field"><label>Supporting text</label><textarea id="pastedSourceText" placeholder="Paste a notification, amendment, circular, article or other source content."></textarea></div>
+        <div class="source-actions"><button class="btn secondary" type="button" id="addPastedSourceBtn">Add text</button><button class="btn ghost" type="button" id="clearPastedSourceBtn">Clear</button></div>
+      </div>
+      <div class="source-actions"><button class="btn secondary" type="button" id="combineSourcesBtn" disabled>Combine sources</button><button class="btn ghost" type="button" id="clearSourcesBtn" disabled>Clear sources</button></div>
+      <div class="mapping-paths" aria-label="Choose a mapping method">
+        <div class="mapping-path-card">
+          <span class="path-step">Option 1</span>
+          <b>Manual mapping</b>
+          <small>Use when you know the exact passage. In the right panel, select <b>Review text</b>, highlight a passage and choose <b>Map selected text</b>.</small>
+        </div>
+        <div class="mapping-path-card ai-path">
+          <span class="path-step">Option 2</span>
+          <b>AI-assisted mapping</b>
+          <small>Use when the document is long or you are unsure what to map. Select the source for AI, enter an instruction and review the generated suggestions.</small>
+        </div>
+      </div>
+      <div class="ai-assist-card">
+        <div class="ai-assist-head"><span class="ai-spark">✦</span><div><b>AI-assisted mapping</b><small>Create reviewable suggestions from the included sources</small></div></div>
+        <div id="aiSourceSummary" class="ai-source-summary">No supporting source selected for AI analysis.</div>
+        <div class="field"><label for="aiInstruction">Instruction</label><textarea id="aiInstruction" placeholder="Example: Identify material India-wide regulatory changes and draft concise newsletter updates. Preserve dates, regulator names and required actions."></textarea></div>
+        <div class="ai-actions"><button class="btn orange" type="button" id="analyzeSourcesBtn" disabled>Generate suggestions</button><button class="btn ghost" type="button" id="clearAiSuggestionsBtn" disabled>Clear suggestions</button></div>
+        <div id="aiRunStatus" class="source-upload-status" aria-live="polite"></div>
+        <p class="microcopy">Only sources marked <b>Use for AI</b> in the right panel are analysed. The standard Excel workbook is excluded by default.</p>
+      </div>
     </div>
-    <div class="source-pane hidden" data-source-pane="documents">
-      <div class="drop" id="documentDropZone"><strong>Drop one or more source documents</strong><small>.pdf, .docx or .txt · text is extracted locally for review</small><input id="documentFileInput" class="hidden" type="file" accept=".pdf,.docx,.txt,text/plain,application/pdf" multiple /></div>
-      <div class="source-actions"><button class="btn secondary" type="button" id="combineSourcesBtn" disabled>Combine sources</button><button class="btn ghost" type="button" id="clearSourcesBtn" disabled>Clear all</button></div>
+  </details>
+
+  <details class="sidebar-accordion">
+    <summary><span><b>Newsletter settings</b><small>Issue title and brand colours</small></span><span class="chevron">⌄</span></summary>
+    <div class="accordion-body">
+      <div class="field"><label>Issue title</label><input id="issueTitle" value="Compliance Newsletter"></div>
+      <div class="field"><label>Primary colour</label><div class="color-row"><input id="primaryColor" type="color" value="#173f42" aria-label="Primary colour picker"><input id="primaryHex" type="text" value="#173F42" maxlength="7" aria-label="Primary colour hex value"></div></div>
+      <div class="field"><label>Accent colour</label><div class="color-row"><input id="accentColor" type="color" value="#f58220" aria-label="Accent colour picker"><input id="accentHex" type="text" value="#F58220" maxlength="7" aria-label="Accent colour hex value"></div></div>
     </div>
-    <div class="source-pane hidden" data-source-pane="paste">
-      <div class="field"><label>Paste unstructured source text</label><textarea id="pastedSourceText" placeholder="Paste a notification, amendment, legal update, article or other source content here."></textarea></div>
-      <div class="source-actions"><button class="btn secondary" type="button" id="addPastedSourceBtn">Add pasted text</button><button class="btn ghost" type="button" id="clearPastedSourceBtn">Clear</button></div>
+  </details>
+
+  <details class="sidebar-accordion">
+    <summary><span><b>Advanced design</b><small>Typography, width and logos</small></span><span class="chevron">⌄</span></summary>
+    <div class="accordion-body">
+      <div class="field"><label>Heading font</label><select id="headingFont"><option value="Arial, Helvetica, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="Trebuchet MS, Arial, sans-serif">Trebuchet MS</option><option value="Verdana, Arial, sans-serif">Verdana</option><option value="Times New Roman, serif">Times New Roman</option></select></div>
+      <div class="field"><label>Body font</label><select id="bodyFont"><option value="Arial, Helvetica, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="Trebuchet MS, Arial, sans-serif">Trebuchet MS</option><option value="Verdana, Arial, sans-serif">Verdana</option><option value="Times New Roman, serif">Times New Roman</option></select></div>
+      <div class="field"><label>Lead headline colour</label><div class="color-row"><input id="headlineColor" type="color" value="#161616"><input id="headlineHex" type="text" value="#161616" maxlength="7"></div></div>
+      <div class="field"><label>Lead headline size <span id="headlineSizeValue">31 px</span></label><input id="headlineSize" type="range" min="22" max="52" value="31"></div>
+      <div class="field"><label>Body text size <span id="bodySizeValue">15 px</span></label><input id="bodySize" type="range" min="12" max="20" value="15"></div>
+      <div class="field"><label>Content width <span id="contentWidthValue">740 px</span></label><input id="contentWidth" type="range" min="620" max="900" step="10" value="740"></div>
+      <div class="field"><label>Lexplosion logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button class="remove-update" type="button" id="clearCompanyLogoBtn">Restore default logo</button></div>
+      <div class="field"><label>Product logo to replace</label><select id="productLogoTarget"><option>Komrisk AI</option><option>Komtrakt</option><option>Komtrol</option><option>Komtrol Plus</option></select></div>
+      <div class="field"><label>Upload product logo</label><input id="productLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button class="remove-update" type="button" id="clearProductLogoBtn">Restore selected product logo</button></div>
+      <div class="editor-toolbar"><button class="btn secondary" id="saveThemeBtn" type="button">Save design</button><button class="btn ghost" id="resetThemeBtn" type="button">Reset design</button></div>
     </div>
-    <div class="email-note"><b>Current phase:</b> document text is extracted and prepared for review. AI instructions and automated newsletter population will be added in the next build.</div>
-  </div>
-  <div class="step"><h3>2. Newsletter settings</h3>
-    <div class="email-note"><b>Sharing and review:</b> generate the newsletter first, then use <b>Create review link</b> or <b>Email for review</b>. Recipient addresses are entered when you click the email button.</div>
-    <div class="field"><label>Issue title</label><input id="issueTitle" value="Compliance Newsletter"></div>
-    <div class="field"><label>Primary colour</label><div class="color-row"><input id="primaryColor" type="color" value="#173f42" aria-label="Primary colour picker"><input id="primaryHex" type="text" value="#173F42" maxlength="7" aria-label="Primary colour hex value"></div></div>
-    <div class="field"><label>Accent colour</label><div class="color-row"><input id="accentColor" type="color" value="#f58220" aria-label="Accent colour picker"><input id="accentHex" type="text" value="#F58220" maxlength="7" aria-label="Accent colour hex value"></div></div>
-  </div>
-  <div class="step"><h3>3. Design and branding</h3>
-    <div class="field"><label>Heading font</label><select id="headingFont"><option value="Arial, Helvetica, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="Trebuchet MS, Arial, sans-serif">Trebuchet MS</option><option value="Verdana, Arial, sans-serif">Verdana</option><option value="Times New Roman, serif">Times New Roman</option></select></div>
-    <div class="field"><label>Body font</label><select id="bodyFont"><option value="Arial, Helvetica, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="Trebuchet MS, Arial, sans-serif">Trebuchet MS</option><option value="Verdana, Arial, sans-serif">Verdana</option><option value="Times New Roman, serif">Times New Roman</option></select></div>
-    <div class="field"><label>Lead headline colour</label><div class="color-row"><input id="headlineColor" type="color" value="#161616"><input id="headlineHex" type="text" value="#161616" maxlength="7"></div></div>
-    <div class="field"><label>Lead headline size <span id="headlineSizeValue">31 px</span></label><input id="headlineSize" type="range" min="22" max="52" value="31"></div>
-    <div class="field"><label>Body text size <span id="bodySizeValue">15 px</span></label><input id="bodySize" type="range" min="12" max="20" value="15"></div>
-    <div class="field"><label>Content width <span id="contentWidthValue">740 px</span></label><input id="contentWidth" type="range" min="620" max="900" step="10" value="740"></div>
-    <div class="field"><label>Lexplosion logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><div class="hint">Upload a PNG, JPG, WebP or SVG. Leave blank to retain the built-in wordmark.</div><button class="remove-update" type="button" id="clearCompanyLogoBtn">Restore default logo</button></div>
-    <div class="field"><label>Product logo to replace</label><select id="productLogoTarget"><option>Komrisk AI</option><option>Komtrakt</option><option>Komtrol</option><option>Komtrol Plus</option></select></div>
-    <div class="field"><label>Upload product logo</label><input id="productLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button class="remove-update" type="button" id="clearProductLogoBtn">Restore selected product logo</button></div>
-    <div class="editor-toolbar"><button class="btn secondary" id="saveThemeBtn" type="button">Save design</button><button class="btn ghost" id="resetThemeBtn" type="button">Reset design</button></div>
-  </div>
-  <div class="step"><h3>4. Review and edit content</h3>
-    <div id="editorEmpty" class="hint">Upload a file or load the demo to edit newsletter content.</div>
-    <div id="contentEditor" class="hidden">
-      <div class="field"><label>Lead story headline</label><textarea id="editHeadline"></textarea></div>
-      <div class="field"><label>Introduction</label><textarea id="editIntroduction"></textarea></div>
-      <div class="field"><label>Executive summary</label><textarea id="editExecutiveSummary"></textarea></div>
-      <div id="updatesEditor"></div>
-      <div class="editor-toolbar"><button class="btn secondary" id="addUpdateBtn" type="button">Add update</button><button class="btn ghost" id="applyEditsBtn" type="button">Apply edits</button></div>
+  </details>
+
+  <details class="sidebar-accordion">
+    <summary><span><b>Review and edit content</b><small>Fine-tune newsletter fields</small></span><span class="chevron">⌄</span></summary>
+    <div class="accordion-body">
+      <div id="editorEmpty" class="hint">Upload the standard Excel template or load the sample first.</div>
+      <div id="contentEditor" class="hidden">
+        <div class="field"><label>Lead story headline</label><textarea id="editHeadline"></textarea></div>
+        <div class="field"><label>Introduction</label><textarea id="editIntroduction"></textarea></div>
+        <div class="field"><label>Executive summary</label><textarea id="editExecutiveSummary"></textarea></div>
+        <div id="updatesEditor"></div>
+        <div class="editor-toolbar"><button class="btn secondary" id="addUpdateBtn" type="button">Add update</button><button class="btn ghost" id="applyEditsBtn" type="button">Apply edits</button></div>
+      </div>
     </div>
-  </div>
-  <div class="step"><h3>5. Generate and distribute</h3>
-    <div class="actions"><button class="btn primary" id="generateBtn">Generate</button><button class="btn secondary" id="sampleBtn">Load demo</button><button class="btn ghost" id="downloadBtn" disabled>Download HTML</button><button class="btn ghost" id="downloadDocxBtn" disabled>Download Word</button><button class="btn ghost" id="copyBtn" disabled>Create review link</button><button class="btn orange" id="emailBtn" disabled style="grid-column:1/-1">Email for review</button></div>
-  </div>
-  <div class="step"><h3>Delivery status</h3><div class="email-note"><b>Direct email is enabled when deployed through Netlify.</b> The app uses a secure serverless function and the <code>RESEND_API_KEY</code> environment variable. No email credentials are stored in the browser.</div></div>
+  </details>
+
+  <section class="distribution-section">
+    <h3>Export and share</h3>
+    <div class="actions"><button class="btn primary" id="generateBtn">Refresh preview</button><button class="btn ghost" id="downloadBtn" disabled>Download HTML</button><button class="btn ghost" id="downloadDocxBtn" disabled>Download Word</button><button class="btn ghost" id="copyBtn" disabled>Create review link</button><button class="btn orange" id="emailBtn" disabled style="grid-column:1/-1">Email for review</button></div>
+  </section>
+
+  <details class="sidebar-accordion quiet">
+    <summary><span><b>Project and release tools</b><small>Draft handoff, diagnostics and document-first mode</small></span><span class="chevron">⌄</span></summary>
+    <div class="accordion-body">
+      <button class="btn ghost full" type="button" id="exportProjectBtn">Export project file</button>
+      <label class="btn ghost full file-label" for="importProjectInput">Import project file</label>
+      <input id="importProjectInput" class="visually-hidden-file" type="file" accept="application/json,.json">
+      <button class="btn ghost full" type="button" id="downloadProvenanceBtn">Download source report</button>
+      <button class="btn secondary full" type="button" id="runReadinessBtn">Run release readiness check</button>
+      <hr class="soft-divider">
+      <button class="btn ghost full" type="button" id="startEmptyBtn">Start without Excel</button>
+      <button class="btn ghost full" type="button" id="restoreDraftBtn">Restore previous draft</button>
+      <button class="remove-update full" type="button" id="clearSavedDraftBtn">Clear saved draft</button>
+    </div>
+  </details>
 </aside>
 <main class="main">
   <div class="topbar"><h2>Newsletter preview</h2><span class="status" id="status">Waiting for source data</span></div>
   <div class="workspace"><div class="preview-shell"><div class="preview" id="preview"></div></div>
   <aside class="panel"><h3>Validation and activity</h3><div id="summary" class="hint">Upload a structured workbook, add source documents or paste text to begin.</div><div class="log" id="log" style="margin-top:12px">No activity yet.</div>
-  <div class="source-review" id="sourceReview"><div class="source-review-head"><h3>Extracted sources</h3><span class="pill" id="sourceCount">0 sources</span></div><div id="sourceList" class="source-list"><div class="empty-source">No unstructured sources added.</div></div><button class="btn secondary full" id="previewCombinedBtn" type="button" disabled>Preview combined text</button></div>
+  <div class="source-review" id="sourceReview"><div class="source-review-head"><h3>Extracted sources</h3><span class="pill" id="sourceCount">0 sources</span></div><div id="sourceList" class="source-list"><div class="empty-source">No extracted sources available.</div></div><button class="btn secondary full" id="previewCombinedBtn" type="button" disabled>Preview combined text</button></div>
+  <div class="ai-review" id="aiReview"><div class="source-review-head"><h3>AI suggestion queue</h3><span class="pill" id="aiSuggestionCount">0 pending</span></div><div id="aiSuggestionList" class="ai-suggestion-list"><div class="empty-source">Generate suggestions from included supporting sources.</div></div><div class="source-actions"><button class="btn secondary" id="reviewNextAiBtn" type="button" disabled>Review next</button><button class="btn ghost" id="applyAllAiBtn" type="button" disabled>Apply approved</button></div></div>
+  <div class="mapping-review"><div class="source-review-head"><h3>Mapping activity</h3><span class="pill" id="mappingCount">0 mapped</span></div><div id="mappingList" class="mapping-list"><div class="empty-source">No document content has been mapped yet.</div></div><div class="source-actions"><button class="btn ghost" id="undoMappingBtn" type="button" disabled>Undo last mapping</button><button class="btn ghost" id="saveDraftBtn" type="button">Save draft</button></div></div>
   <p><span class="pill ok">Browser processing</span> Excel, Word, PDF and text extraction run locally. Scanned-image PDFs may require OCR in a later build.</p></aside></div>
 </main></div>
 
@@ -115,11 +171,50 @@
 
 <dialog id="sourcePreviewDialog" class="app-dialog source-dialog">
   <form method="dialog" class="dialog-card">
-    <div class="dialog-head"><div><h3 id="sourcePreviewTitle">Extracted source text</h3><p>Review and edit the extracted content before it is sent to the future AI processing step.</p></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div>
+    <div class="dialog-head"><div><h3 id="sourcePreviewTitle">Extracted source text</h3><p>Review the source, highlight the exact text you need and map it into a newsletter placeholder.</p></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div>
     <textarea id="sourcePreviewText" class="dialog-textarea source-preview-text"></textarea>
     <div class="dialog-help" id="sourcePreviewMeta"></div>
-    <div class="dialog-actions"><button type="button" class="btn secondary" id="saveSourceEditBtn">Save edits</button><button type="button" class="btn ghost light" id="downloadSourceTextBtn">Download text</button><button class="btn plain" value="cancel">Close</button></div>
+    <div class="selection-help">Select text inside the box, then click <b>Map selected text</b>. A text selection is required. This prevents an entire document from being placed into a headline or another short field.</div><div class="dialog-actions"><button type="button" class="btn orange" id="mapSelectedTextBtn">Map selected text</button><button type="button" class="btn secondary" id="saveSourceEditBtn">Save edits</button><button type="button" class="btn ghost light" id="downloadSourceTextBtn">Download text</button><button class="btn plain" value="cancel">Close</button></div>
     <div id="sourcePreviewStatus" class="dialog-status"></div>
+  </form>
+</dialog>
+
+<dialog id="mappingDialog" class="app-dialog mapping-dialog">
+  <form method="dialog" class="dialog-card">
+    <div class="dialog-head"><div><h3>Map source content</h3><p>Choose a newsletter placeholder and review the proposed change before applying it.</p></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div>
+    <div class="mapping-grid">
+      <div class="field"><label>Destination placeholder</label><select id="mappingTarget"></select></div>
+      <div class="field"><label>Action</label><select id="mappingMode"><option value="replace">Replace current value</option><option value="append">Append to current value</option></select></div>
+    </div>
+    <div id="mappingConflict" class="mapping-conflict hidden"></div>
+    <div class="compare-grid"><div><label>Current value</label><div id="mappingCurrent" class="compare-box muted">Empty</div></div><div><label>Proposed value</label><textarea id="mappingProposed" class="dialog-textarea mapping-proposed"></textarea></div></div>
+    <div id="mappingCounter" class="mapping-counter"></div><div class="dialog-help" id="mappingSourceRef"></div>
+    <div class="dialog-actions"><button type="button" class="btn secondary" id="fitMappingBtn">Create concise field text</button><button type="button" class="btn orange" id="applyMappingBtn">Apply mapping</button><button class="btn plain" value="cancel">Cancel</button></div>
+    <div id="mappingStatus" class="dialog-status"></div>
+  </form>
+</dialog>
+
+<dialog id="aiSuggestionDialog" class="app-dialog ai-suggestion-dialog">
+  <form method="dialog" class="dialog-card">
+    <div class="dialog-head"><div><h3>Review AI suggestion</h3><p>Edit the proposed fields, choose a destination and approve only what should enter the newsletter.</p></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div>
+    <div class="ai-review-meta" id="aiSuggestionMeta"></div>
+    <div class="mapping-grid">
+      <div class="field"><label>Destination</label><select id="aiSuggestionTarget"></select></div>
+      <div class="field"><label>Conflict action</label><select id="aiConflictMode"><option value="replace">Replace existing fields</option><option value="append">Append to existing fields</option></select></div>
+    </div>
+    <div id="aiFieldReview" class="ai-field-review"></div>
+    <div class="ai-source-evidence"><label>Source evidence</label><div id="aiSourceExcerpt" class="compare-box muted"></div></div>
+    <div class="dialog-actions"><button type="button" class="btn ghost light" id="regenerateAiBtn">Regenerate</button><button type="button" class="btn secondary" id="approveAiBtn">Approve suggestion</button><button type="button" class="btn orange" id="applyAiNowBtn">Approve and apply</button><button type="button" class="btn plain" id="rejectAiBtn">Reject</button></div>
+    <div id="aiSuggestionStatus" class="dialog-status"></div>
+  </form>
+</dialog>
+
+
+<dialog id="readinessDialog" class="app-dialog">
+  <form method="dialog" class="dialog-card">
+    <div class="dialog-head"><div><h3>Release readiness check</h3><p>Review the environment and current project before sharing the application.</p></div><button class="dialog-close" value="cancel" aria-label="Close">×</button></div>
+    <div id="readinessResults" class="readiness-results"></div>
+    <div class="dialog-actions"><button type="button" class="btn secondary" id="rerunReadinessBtn">Run again</button><button class="btn plain" value="cancel">Close</button></div>
   </form>
 </dialog>
 
