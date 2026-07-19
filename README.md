@@ -1,3 +1,7 @@
+# Kommunicate Newsletter Studio - Mapping Core
+
+This release adds manual document-to-placeholder mapping, protected overrides, document-first newsletter creation, source provenance, field-level history, undo and local draft autosave.
+
 # Kommunicate Newsletter Studio
 
 A browser-based internal tool for turning structured Excel or Word content into a branded Lexplosion regulatory newsletter.
@@ -228,3 +232,23 @@ This phase does not send source content to an LLM and does not automatically pop
 5. Exclude and reorder sources.
 6. Select **Combine sources** and verify the combined text.
 7. Select **Paste text**, add sample content, and confirm it appears in the source list.
+
+## Clean primary-first workflow
+
+This build makes the standard Excel template the default entry point. Supporting PDF, Word, Excel and text sources are available under the collapsed **Add supporting content** section. Advanced design, editing and draft-recovery controls are also collapsed to reduce sidebar congestion.
+
+## AI source selection safeguard (v1.1)
+
+The standard Excel workbook is retained for extraction review but is excluded from AI analysis by default. In the right-hand Extracted sources panel, select **Use for AI** only on the supporting PDF, Word, Excel or text sources that the model should analyse. Changing the AI source selection clears unapplied suggestions to prevent stale results.
+
+## Release Candidate 1
+
+This package is the recommended internal deployment candidate. It adds clearer manual-versus-AI workflow guidance, portable project files, source-provenance reporting and an in-app release-readiness check.
+
+Before deployment, read `DEPLOYMENT_AND_TEAM_HANDOFF.md` and run:
+
+```bash
+node scripts/release-check.mjs
+```
+
+The release check validates required files, duplicate element IDs, JavaScript-to-HTML element references, missing-key behavior and a mocked structured AI response.

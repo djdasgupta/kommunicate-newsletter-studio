@@ -1,6 +1,6 @@
 {
   "name": "kommunicate-newsletter-studio",
-  "version": "1.0.0",
+  "version": "1.0.0-rc1",
   "private": true,
   "description": "GitHub-maintainable Lexplosion regulatory newsletter generator",
   "scripts": {
